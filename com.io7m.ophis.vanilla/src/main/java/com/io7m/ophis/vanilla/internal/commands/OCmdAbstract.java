@@ -26,32 +26,49 @@ import com.io7m.jxe.core.JXEHardenedSAXParsers;
 import com.io7m.jxe.core.JXEXInclude;
 import com.io7m.ophis.api.OClientAccessKeys;
 import com.io7m.ophis.api.OException;
+import com.io7m.ophis.api.commands.OObjectData;
 import com.io7m.ophis.vanilla.internal.OCanonicalRequest;
 import com.io7m.ophis.vanilla.internal.OClient;
+import com.io7m.ophis.vanilla.internal.OResourceRelative;
 import com.io7m.ophis.vanilla.internal.OTimeFormatters;
 import com.io7m.ophis.vanilla.internal.OUserAgent;
 import com.io7m.ophis.vanilla.internal.xml.OXErrorParsing;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 abstract class OCmdAbstract<P, R>
 {
+  private static final Set<String> RESTRICTED_HEADERS =
+    Set.of(
+      "HOST",
+      "CONTENT-LENGTH"
+    );
+
   private final P parameters;
   private final OClient client;
   private final HashMap<String, String> attributes;
   private final OCanonicalRequest.Builder canonicalRequest;
   private final String timestampFull;
   private final String timestampSigner;
+  private Optional<String> bucket;
 
   OCmdAbstract(
     final OClient inClient,
@@ -69,24 +86,42 @@ abstract class OCmdAbstract<P, R>
       OTimeFormatters.amzDateFormatString();
     this.timestampSigner =
       OTimeFormatters.signerFormatString();
+    this.bucket =
+      Optional.empty();
 
-    this.canonicalRequest.setHeader("Host", this.hostString());
     this.canonicalRequest.setHeader("x-amz-date", this.timestampFull);
   }
 
   private String hostString()
   {
+    final var configuration =
+      this.client.configuration();
     final var endpoint =
-      this.client.configuration().endpoint();
+      configuration.endpoint();
     final var host =
       endpoint.getHost();
     final var port =
       endpoint.getPort();
 
+    final var result = new StringBuilder();
+    this.bucket.ifPresent(name -> {
+      switch (configuration.bucketAccessStyle()) {
+        case VIRTUALHOST_STYLE -> {
+          result.append(name);
+          result.append('.');
+        }
+        case PATH_STYLE -> {
+          // Nothing required
+        }
+      }
+    });
+    result.append(host);
+
     if (port >= 0) {
-      return host + ":" + port;
+      result.append(':');
+      result.append(port);
     }
-    return host;
+    return result.toString();
   }
 
   protected final OClient client()
@@ -119,22 +154,99 @@ abstract class OCmdAbstract<P, R>
     );
   }
 
-  protected <T> T sendRequest(
-    final BTQualifiedName name,
-    final BTElementHandlerConstructorType<Object, T> handler)
+  protected final void setHeader(
+    final String name,
+    final String value)
+  {
+    this.canonicalRequest.setHeader(name, value);
+  }
+
+  protected <T> T sendPUT(
+    final OObjectData data,
+    final OResourceRelative key,
+    final Function<HttpHeaders, T> transform)
     throws OException
   {
+    this.setMethod("PUT");
+    this.canonicalRequest.setHeader("Host", this.hostString());
+
+    /*
+     * If we're using path-style buckets, then the resource name must be
+     * set to the bucket name and the key (such as "/bucket-0/key"). Otherwise,
+     * the resource name is just the key.
+     */
+
+    if (this.bucket.isPresent()) {
+      switch (this.client.configuration().bucketAccessStyle()) {
+        case VIRTUALHOST_STYLE -> {
+          this.setResource(key);
+        }
+        case PATH_STYLE -> {
+          final var elements = new ArrayList<String>();
+          elements.add(this.bucket.get());
+          elements.addAll(key.segments());
+          this.setResource(new OResourceRelative(elements));
+        }
+      }
+    }
+
+    this.canonicalRequest.setHashedPayload(data.sha256());
+
     final var canonical =
       this.canonicalRequest.build();
     final var canonicalHash =
       canonical.hash();
 
-    this.setAttribute("Resource", canonical.resource());
+    this.setAttribute("Resource", canonical.resource().toString());
     this.setAttribute("Method", canonical.httpVerb());
     this.setAttribute("Canonical Request Hash", canonicalHash);
 
+    final var requestBuilder =
+      this.createInitialSignedRequestBuilder(canonical, canonicalHash);
+
+    final byte[] dataBytes;
+    try {
+      dataBytes = data.stream()
+        .get()
+        .readAllBytes();
+    } catch (final IOException e) {
+      throw new OException(
+        e,
+        "error-io",
+        Map.copyOf(this.attributes),
+        Optional.empty()
+      );
+    }
+
+    final var request =
+      requestBuilder.PUT(BodyPublishers.ofByteArray(dataBytes))
+        .build();
+
+    final var response =
+      this.executeHTTPRequest(request);
+
+    return transform.apply(response.headers());
+  }
+
+  private HttpRequest.Builder createInitialSignedRequestBuilder(
+    final OCanonicalRequest canonical,
+    final String canonicalHash)
+    throws OException
+  {
+    final URI bucketEndpoint;
+    try {
+      bucketEndpoint = this.bucketEndpoint();
+    } catch (final URISyntaxException e) {
+      throw new OException(
+        e,
+        "error-uri-syntax",
+        Map.copyOf(this.attributes),
+        Optional.empty()
+      );
+    }
+
     final var uriSource =
-      canonical.queryURI(this.client.configuration().endpoint());
+      canonical.queryURI(bucketEndpoint);
 
     /*
      * See: "https://docs.aws.amazon.com/IAM/latest/UserGuide/create-signed-request.html"
@@ -165,19 +277,65 @@ abstract class OCmdAbstract<P, R>
     for (final var entry : canonical.headers().entrySet()) {
       final var headerName = entry.getKey();
       final var headerValue = entry.getValue();
-      if (!headerName.equalsIgnoreCase("Host")) {
+      if (!RESTRICTED_HEADERS.contains(headerName.toUpperCase())) {
         requestBuilder.header(headerName, headerValue);
       }
     }
 
+    return requestBuilder;
+  }
+
+  protected <T> T sendGET(
+    final BTQualifiedName name,
+    final BTElementHandlerConstructorType<Object, T> handler)
+    throws OException
+  {
+    this.setMethod("GET");
+    this.canonicalRequest.setHeader("Host", this.hostString());
+
+    /*
+     * If we're using path-style buckets, then the resource name must be
+     * set to the bucket name (such as "/bucket-0").
+     */
+
+    if (this.bucket.isPresent()) {
+      switch (this.client.configuration().bucketAccessStyle()) {
+        case VIRTUALHOST_STYLE -> {
+          // Nothing
+        }
+        case PATH_STYLE -> {
+          this.setResource(new OResourceRelative(List.of(this.bucket.get())));
+        }
+      }
+    }
+
+    final var canonical =
+      this.canonicalRequest.build();
+    final var canonicalHash =
+      canonical.hash();
+
+    this.setAttribute("Resource", canonical.resource().toString());
+    this.setAttribute("Method", canonical.httpVerb());
+    this.setAttribute("Canonical Request Hash", canonicalHash);
+
+    final var requestBuilder =
+      this.createInitialSignedRequestBuilder(canonical, canonicalHash);
+
     final var request =
-      requestBuilder
-        .GET()
+      requestBuilder.GET()
         .build();
 
-    final var http =
-      this.httpClient();
+    final var response =
+      this.executeHTTPRequest(request);
 
+    return this.parseNonError(request, name, handler, response);
+  }
+
+  private HttpResponse<InputStream> executeHTTPRequest(
+    final HttpRequest request)
+    throws OException
+  {
+    final var http = this.httpClient();
     final HttpResponse<InputStream> response;
     try {
       response = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
@@ -214,7 +372,37 @@ abstract class OCmdAbstract<P, R>
       );
     }
 
-    return this.parseNonError(request, name, handler, response);
+    return response;
+  }
+
+  private URI bucketEndpoint()
+    throws URISyntaxException
+  {
+    final var baseEndpoint =
+      this.client.configuration()
+        .endpoint();
+
+    if (this.bucket.isPresent()) {
+      final var bucketName =
+        this.bucket.get();
+
+      final var hostName = new StringBuilder();
+      hostName.append(bucketName);
+      hostName.append('.');
+      hostName.append(baseEndpoint.getHost());
+
+      return new URI(
+        baseEndpoint.getScheme(),
+        baseEndpoint.getUserInfo(),
+        hostName.toString(),
+        baseEndpoint.getPort(),
+        baseEndpoint.getPath(),
+        baseEndpoint.getQuery(),
+        baseEndpoint.getFragment()
+      );
+    }
+
+    return baseEndpoint;
   }
 
   private String authorizationHeaderString(
@@ -274,13 +462,15 @@ abstract class OCmdAbstract<P, R>
     final HttpResponse<InputStream> response)
     throws OException
   {
+    final var body =
+      response.body();
     final Map<BTQualifiedName, BTElementHandlerConstructorType<?, T>> rootElements =
       Map.of(name, handler);
 
     try {
       return Blackthorne.parse(
         request.uri(),
-        response.body(),
+        body,
         BTPreserveLexical.PRESERVE_LEXICAL_INFORMATION,
         () -> {
           return this.saxParsers().createXMLReaderNonValidating(
@@ -293,7 +483,7 @@ abstract class OCmdAbstract<P, R>
     } catch (final BTException e) {
       this.attributes.putAll(e.attributes());
 
-      final int index = 0;
+      final var index = 0;
       for (final var error : e.errors()) {
         final var errorKey =
           "Parse Error %d".formatted(index);
@@ -309,7 +499,7 @@ abstract class OCmdAbstract<P, R>
   }
 
   protected final void setResource(
-    final String resource)
+    final OResourceRelative resource)
   {
     this.canonicalRequest.setResource(resource);
   }
@@ -325,5 +515,11 @@ abstract class OCmdAbstract<P, R>
     final String method)
   {
     this.canonicalRequest.setMethod(method);
+  }
+
+  protected final void setBucket(
+    final String inBucket)
+  {
+    this.bucket = Optional.of(inBucket);
   }
 }

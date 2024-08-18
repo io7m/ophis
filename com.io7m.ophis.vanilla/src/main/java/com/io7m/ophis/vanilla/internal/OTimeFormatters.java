@@ -37,6 +37,12 @@ public final class OTimeFormatters
       Locale.US
     ).withZone(UTC);
 
+  private static final DateTimeFormatter HTTP_HEADER_DATE_FORMAT =
+    DateTimeFormatter.ofPattern(
+        "EEE',' dd MMM yyyy HH':'mm':'ss 'GMT'",
+        Locale.US)
+      .withZone(UTC);
+
   private static final DateTimeFormatter SIGNER_DATE_FORMAT =
     DateTimeFormatter.ofPattern("yyyyMMdd", Locale.US)
       .withZone(UTC);
@@ -62,5 +68,16 @@ public final class OTimeFormatters
   public static String signerFormatString()
   {
     return SIGNER_DATE_FORMAT.format(OffsetDateTime.now(UTC));
+  }
+
+  /**
+   * @return The HTTP header date format
+   *
+   * @see "https://www.rfc-editor.org/rfc/rfc7234#section-5.3"
+   */
+
+  public static DateTimeFormatter httpHeaderFormat()
+  {
+    return HTTP_HEADER_DATE_FORMAT;
   }
 }

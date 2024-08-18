@@ -15,18 +15,43 @@
  */
 
 
-package com.io7m.ophis.api.commands;
+package com.io7m.ophis.vanilla.internal.commands;
 
-import com.io7m.ophis.api.OClientCommandType;
-
-import java.util.Optional;
+import com.io7m.ophis.api.commands.OPutObjectParameters;
+import com.io7m.ophis.api.commands.OPutObjectResponse;
+import com.io7m.ophis.api.commands.OPutObjectType;
+import com.io7m.ophis.vanilla.internal.OClient;
 
 /**
- * The ListBuckets command.
+ * A command factory.
  */
 
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+public final class OCmdPutObjectF
+  implements OClientCommandFactoryType<
+  OPutObjectParameters,
+  OPutObjectResponse,
+  OPutObjectType>
 {
+  /**
+   * A command factory.
+   */
 
+  public OCmdPutObjectF()
+  {
+
+  }
+
+  @Override
+  public Class<OPutObjectType> commandClass()
+  {
+    return OPutObjectType.class;
+  }
+
+  @Override
+  public OPutObjectType createCommand(
+    final OClient client,
+    final OPutObjectParameters parameters)
+  {
+    return new OCmdPutObject(client, parameters);
+  }
 }

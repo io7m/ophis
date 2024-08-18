@@ -7,7 +7,7 @@
     <encoder>
       <pattern>%level %logger %msg%n</pattern>
     </encoder>
-    <target>System.out</target>
+    <target>System.err</target>
   </appender>
 
   <logger name="com.io7m.blackthorne.core"

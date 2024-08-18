@@ -15,18 +15,41 @@
  */
 
 
-package com.io7m.ophis.api.commands;
+package com.io7m.ophis.vanilla.internal;
 
-import com.io7m.ophis.api.OClientCommandType;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import java.util.Optional;
-
-/**
- * The ListBuckets command.
- */
-
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+public record OResourceRelative(
+  List<String> segments)
 {
+  public OResourceRelative
+  {
+    segments = List.copyOf(segments);
+  }
 
+  public static OResourceRelative parse(
+    final String key)
+  {
+    return new OResourceRelative(
+      Stream.of(key.replaceAll("/+", "/").split("/"))
+        .filter(s -> !s.isEmpty())
+        .filter(s -> !s.isBlank())
+        .toList()
+    );
+  }
+
+  @Override
+  public String toString()
+  {
+    return this.segments.stream()
+      .map(OURLEncode::urlEncode)
+      .collect(Collectors.joining("/"));
+  }
+
+  public static OResourceRelative empty()
+  {
+    return new OResourceRelative(List.of());
+  }
 }

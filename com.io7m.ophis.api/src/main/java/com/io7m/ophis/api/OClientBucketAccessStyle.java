@@ -15,18 +15,29 @@
  */
 
 
-package com.io7m.ophis.api.commands;
-
-import com.io7m.ophis.api.OClientCommandType;
-
-import java.util.Optional;
+package com.io7m.ophis.api;
 
 /**
- * The ListBuckets command.
+ * <p>The style of buckets used by the server.</p>
+ * <p>The recommended style for Amazon S3 is {@code VIRTUALHOST_STYLE}. The
+ * default for the MinIO server, at the time of writing, is
+ * {@code PATH_STYLE}.</p>
  */
 
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+public enum OClientBucketAccessStyle
 {
+  /**
+   * "Virtual host" style buckets. To access a bucket {@code x},
+   * requests to the server {@code target} must be made with a
+   * {@code Host} header set to {@code x.target}
+   */
 
+  VIRTUALHOST_STYLE,
+
+  /**
+   * "Path" style buckets. To access a bucket {@code x},
+   * requests to the server must be made to the path {@code /x}.
+   */
+
+  PATH_STYLE
 }

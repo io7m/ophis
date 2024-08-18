@@ -17,16 +17,53 @@
 
 package com.io7m.ophis.api.commands;
 
-import com.io7m.ophis.api.OClientCommandType;
+import com.io7m.immutables.styles.ImmutablesStyleType;
+import org.immutables.value.Value;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
-/**
- * The ListBuckets command.
- */
-
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+@ImmutablesStyleType
+@Value.Immutable
+public interface OListObjectsParametersType
 {
+  String bucketName();
 
+  Optional<String> continuationToken();
+
+  @Value.Default
+  default String delimiter()
+  {
+    return "/";
+  }
+
+  @Value.Default
+  default String encoding()
+  {
+    return StandardCharsets.UTF_8.name();
+  }
+
+  @Value.Default
+  default boolean fetchOwner()
+  {
+    return false;
+  }
+
+  @Value.Default
+  default int maximumKeys()
+  {
+    return 1000;
+  }
+
+  @Value.Default
+  default String prefix()
+  {
+    return "";
+  }
+
+  @Value.Default
+  default String startAfter()
+  {
+    return "";
+  }
 }

@@ -17,16 +17,38 @@
 
 package com.io7m.ophis.api.commands;
 
-import com.io7m.ophis.api.OClientCommandType;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
-import java.util.Optional;
-
-/**
- * The ListBuckets command.
- */
-
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+public final class OHex
 {
+  private static final Pattern VALID_HEX =
+    Pattern.compile("[a-f0-9]+");
 
+  private OHex()
+  {
+
+  }
+
+  public static boolean isValid(
+    final String text)
+  {
+    Objects.requireNonNull(text, "text");
+
+    return VALID_HEX.matcher(text).matches();
+  }
+
+  public static String check(
+    final String text)
+  {
+    Objects.requireNonNull(text, "text");
+
+    if (!isValid(text)) {
+      throw new IllegalArgumentException(
+        "Text '%s' must match the pattern '%s'"
+          .formatted(text, VALID_HEX)
+      );
+    }
+    return text;
+  }
 }

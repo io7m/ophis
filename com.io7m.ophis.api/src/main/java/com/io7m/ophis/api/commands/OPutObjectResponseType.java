@@ -17,16 +17,12 @@
 
 package com.io7m.ophis.api.commands;
 
-import com.io7m.ophis.api.OClientCommandType;
+import com.io7m.immutables.styles.ImmutablesStyleType;
+import org.immutables.value.Value;
 
-import java.util.Optional;
-
-/**
- * The ListBuckets command.
- */
-
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+@ImmutablesStyleType
+@Value.Immutable
+public interface OPutObjectResponseType
 {
 
 }

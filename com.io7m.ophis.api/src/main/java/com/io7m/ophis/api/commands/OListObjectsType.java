@@ -19,14 +19,12 @@ package com.io7m.ophis.api.commands;
 
 import com.io7m.ophis.api.OClientCommandType;
 
-import java.util.Optional;
-
 /**
- * The ListBuckets command.
+ * The ListObjects command.
  */
 
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+public non-sealed interface OListObjectsType
+  extends OClientCommandType<OListObjectsParameters, OListObjectsResponse>
 {
 
 }

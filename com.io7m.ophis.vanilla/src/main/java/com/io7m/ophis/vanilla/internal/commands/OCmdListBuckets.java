@@ -18,7 +18,7 @@
 package com.io7m.ophis.vanilla.internal.commands;
 
 import com.io7m.ophis.api.OException;
-import com.io7m.ophis.api.commands.OBucketList;
+import com.io7m.ophis.api.commands.OListBucketsResponse;
 import com.io7m.ophis.api.commands.OListBucketsType;
 import com.io7m.ophis.vanilla.internal.OClient;
 import com.io7m.ophis.vanilla.internal.xml.OXListBuckets;
@@ -30,7 +30,7 @@ import java.util.Optional;
  */
 
 public final class OCmdListBuckets
-  extends OCmdAbstract<Optional<String>, OBucketList>
+  extends OCmdAbstract<Optional<String>, OListBucketsResponse>
   implements OListBucketsType
 {
   OCmdListBuckets(
@@ -41,17 +41,14 @@ public final class OCmdListBuckets
   }
 
   @Override
-  public OBucketList execute()
+  public OListBucketsResponse execute()
     throws OException
   {
-    this.setMethod("GET");
-    this.setResource("/");
-
     this.parameters().ifPresent(s -> {
       this.queryParameterAdd("continuation-token", s);
     });
 
-    return this.sendRequest(
+    return this.sendGET(
       OXListBuckets.elementName(),
       OXListBuckets::new
     );

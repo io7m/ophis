@@ -20,48 +20,39 @@ package com.io7m.ophis.vanilla.internal.xml;
 import com.io7m.blackthorne.core.BTElementHandlerConstructorType;
 import com.io7m.blackthorne.core.BTElementHandlerType;
 import com.io7m.blackthorne.core.BTElementParsingContextType;
+import com.io7m.blackthorne.core.BTIgnoreUnrecognizedElements;
 import com.io7m.blackthorne.core.BTQualifiedName;
 import com.io7m.blackthorne.core.Blackthorne;
-import com.io7m.ophis.api.commands.OBucketDescription;
-import com.io7m.ophis.api.commands.OListBucketsResponse;
-import com.io7m.ophis.api.commands.OOwner;
+import com.io7m.ophis.api.commands.ORestoreStatus;
 
-import java.util.List;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.io7m.blackthorne.core.BTIgnoreUnrecognizedElements.IGNORE_UNRECOGNIZED_ELEMENTS;
-import static com.io7m.ophis.vanilla.internal.xml.OQName.s3Name;
+import static com.io7m.ophis.vanilla.internal.xml.OQName.errorName;
 
 /**
  * An element handler.
  */
 
-public final class OXListBuckets
-  implements BTElementHandlerType<Object, OListBucketsResponse>
+public final class OXRestoreStatus
+  implements BTElementHandlerType<Object, ORestoreStatus>
 {
   private static final BTQualifiedName ELEMENT_NAME =
-    s3Name("ListAllMyBucketsResult");
-  private static final BTQualifiedName BUCKETS =
-    s3Name("Buckets");
-  private static final BTQualifiedName BUCKET =
-    s3Name("Bucket");
-  private static final BTQualifiedName OWNER =
-    s3Name("Owner");
-  private static final BTQualifiedName CONTINUATION_TOKEN =
-    s3Name("ContinuationToken");
+    errorName("RestoreStatus");
+  private static final BTQualifiedName IS_RESTORE_IN_PROGRESS =
+    errorName("IsRestoreInProgress");
+  private static final BTQualifiedName RESTORE_EXPIRY_DATE =
+    errorName("RestoreExpiryDate");
 
-  private OOwner owner = new OOwner("", "");
-  private List<OBucketDescription> buckets = List.of();
-  private Optional<String> token = Optional.empty();
+  private Boolean inProgress = false;
+  private Optional<OffsetDateTime> expiryDate = Optional.empty();
 
-  /**
-   * @return The root element name
-   */
-
-  public static BTQualifiedName elementName()
+  @Override
+  public BTIgnoreUnrecognizedElements onShouldIgnoreUnrecognizedElements(
+    final BTElementParsingContextType context)
   {
-    return ELEMENT_NAME;
+    return BTIgnoreUnrecognizedElements.IGNORE_UNRECOGNIZED_ELEMENTS;
   }
 
   /**
@@ -70,10 +61,19 @@ public final class OXListBuckets
    * @param context The parse context
    */
 
-  public OXListBuckets(
+  public OXRestoreStatus(
     final BTElementParsingContextType context)
   {
 
+  }
+
+  /**
+   * @return The element name
+   */
+
+  public static BTQualifiedName elementName()
+  {
+    return ELEMENT_NAME;
   }
 
   @Override
@@ -81,21 +81,21 @@ public final class OXListBuckets
   onChildHandlersRequested(
     final BTElementParsingContextType context)
   {
-    final var bucketsHandler =
-      Blackthorne.forListMono(
-        BUCKETS,
-        BUCKET,
-        OXBucketDescription::new,
-        IGNORE_UNRECOGNIZED_ELEMENTS
-      );
-
-    final var tokenHandler =
-      Blackthorne.forScalarString(CONTINUATION_TOKEN);
-
     return Map.ofEntries(
-      Map.entry(BUCKETS, bucketsHandler),
-      Map.entry(OWNER, OXOwner::new),
-      Map.entry(CONTINUATION_TOKEN, tokenHandler)
+      Map.entry(
+        IS_RESTORE_IN_PROGRESS,
+        Blackthorne.mapConstructor(
+          Blackthorne.forScalarString(IS_RESTORE_IN_PROGRESS),
+          Boolean::parseBoolean
+        )
+      ),
+      Map.entry(
+        RESTORE_EXPIRY_DATE,
+        Blackthorne.mapConstructor(
+          Blackthorne.forScalarString(RESTORE_EXPIRY_DATE),
+          OffsetDateTime::parse
+        )
+      )
     );
   }
 
@@ -105,29 +105,25 @@ public final class OXListBuckets
     final Object result)
   {
     switch (result) {
-      case final List<?> r -> {
-        this.buckets = (List<OBucketDescription>) List.copyOf(r);
+      case final Boolean ff -> {
+        this.inProgress = ff;
       }
-      case final OOwner r -> {
-        this.owner = r;
-      }
-      case final String r -> {
-        this.token = Optional.of(r);
+      case final OffsetDateTime ff -> {
+        this.expiryDate = Optional.of(ff);
       }
       default -> {
-
+        throw new IllegalStateException("Unexpected value: " + result);
       }
     }
   }
 
   @Override
-  public OListBucketsResponse onElementFinished(
+  public ORestoreStatus onElementFinished(
     final BTElementParsingContextType context)
   {
-    return new OListBucketsResponse(
-      List.copyOf(this.buckets),
-      this.owner,
-      this.token
+    return new ORestoreStatus(
+      this.inProgress,
+      this.expiryDate
     );
   }
 }

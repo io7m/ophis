@@ -17,16 +17,45 @@
 
 package com.io7m.ophis.api.commands;
 
-import com.io7m.ophis.api.OClientCommandType;
+import com.io7m.immutables.styles.ImmutablesStyleType;
+import org.immutables.value.Value;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
-/**
- * The ListBuckets command.
- */
-
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+@ImmutablesStyleType
+@Value.Immutable
+public interface OObjectContentsType
 {
+  Optional<String> checksumAlgorithm();
 
+  Optional<String> eTag();
+
+  Optional<String> key();
+
+  @Value.Default
+  default OffsetDateTime lastModified()
+  {
+    return OffsetDateTime.now();
+  }
+
+  Optional<OOwner> owner();
+
+  @Value.Default
+  default long size()
+  {
+    return 0L;
+  }
+
+  @Value.Default
+  default ORestoreStatus restoreStatus()
+  {
+    return new ORestoreStatus(false, Optional.empty());
+  }
+
+  @Value.Default
+  default String storageClass()
+  {
+    return "";
+  }
 }

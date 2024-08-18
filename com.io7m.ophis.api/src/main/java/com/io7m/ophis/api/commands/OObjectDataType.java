@@ -17,16 +17,29 @@
 
 package com.io7m.ophis.api.commands;
 
-import com.io7m.ophis.api.OClientCommandType;
+import com.io7m.immutables.styles.ImmutablesStyleType;
+import org.immutables.value.Value;
 
-import java.util.Optional;
+import java.io.InputStream;
+import java.util.Base64;
+import java.util.function.Supplier;
 
-/**
- * The ListBuckets command.
- */
-
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+@Value.Immutable
+@ImmutablesStyleType
+public interface OObjectDataType
 {
+  Supplier<InputStream> stream();
 
+  long size();
+
+  String sha256();
+
+  String md5();
+
+  @Value.Check
+  default void checkPreconditions()
+  {
+    OHex.check(this.sha256());
+    Base64.getDecoder().decode(this.md5());
+  }
 }

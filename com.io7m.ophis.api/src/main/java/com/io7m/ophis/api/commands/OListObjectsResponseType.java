@@ -17,35 +17,59 @@
 
 package com.io7m.ophis.api.commands;
 
+import com.io7m.immutables.styles.ImmutablesStyleType;
+import org.immutables.value.Value;
+
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
-/**
- * A list of buckets.
- *
- * @param buckets           The buckets
- * @param owner             The owner
- * @param continuationToken The continuation token, if any
- */
-
-public record OBucketList(
-  List<OBucketDescription> buckets,
-  OOwner owner,
-  Optional<String> continuationToken)
+@ImmutablesStyleType
+@Value.Immutable
+public interface OListObjectsResponseType
 {
-  /**
-   * A list of buckets.
-   *
-   * @param buckets           The buckets
-   * @param owner             The owner
-   * @param continuationToken The continuation token, if any
-   */
-
-  public OBucketList
+  @Value.Default
+  default boolean isTruncated()
   {
-    buckets = List.copyOf(buckets);
-    Objects.requireNonNull(owner, "owner");
-    Objects.requireNonNull(continuationToken, "continuationToken");
+    return false;
+  }
+
+  List<OObjectContents> contents();
+
+  String name();
+
+  String prefix();
+
+  @Value.Default
+  default String delimiter()
+  {
+    return "/";
+  }
+
+  @Value.Default
+  default int maxKeys()
+  {
+    return 1000;
+  }
+
+  @Value.Default
+  default String encoding()
+  {
+    return "UTF-8";
+  }
+
+  @Value.Default
+  default int keyCount()
+  {
+    return 0;
+  }
+
+  Optional<String> continuationToken();
+
+  Optional<String> nextContinuationToken();
+
+  @Value.Default
+  default String startAfter()
+  {
+    return "";
   }
 }

@@ -18,6 +18,8 @@
 package com.io7m.ophis.api;
 
 import com.io7m.ophis.api.commands.OListBucketsType;
+import com.io7m.ophis.api.commands.OListObjectsType;
+import com.io7m.ophis.api.commands.OPutObjectType;
 
 /**
  * The type of S3 commands supported by the client.
@@ -26,7 +28,9 @@ import com.io7m.ophis.api.commands.OListBucketsType;
  * @param <R> The type of returned values
  */
 
-public sealed interface OClientCommandType<P, R> permits OListBucketsType
+public sealed interface OClientCommandType<P, R> permits OListBucketsType,
+  OListObjectsType,
+  OPutObjectType
 {
   /**
    * Execute the command.

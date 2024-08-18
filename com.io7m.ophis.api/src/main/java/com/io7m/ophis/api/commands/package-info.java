@@ -15,7 +15,7 @@
  */
 
 /**
- * S3 client (API).
+ * S3 client (API [Commands]).
  */
 
 @Export

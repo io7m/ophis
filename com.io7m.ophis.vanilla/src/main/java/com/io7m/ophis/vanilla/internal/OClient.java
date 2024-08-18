@@ -17,13 +17,17 @@
 
 package com.io7m.ophis.vanilla.internal;
 
+import com.io7m.jmulticlose.core.CloseableCollection;
+import com.io7m.jmulticlose.core.CloseableCollectionType;
 import com.io7m.jxe.core.JXEHardenedSAXParsers;
 import com.io7m.ophis.api.OClientCommandType;
 import com.io7m.ophis.api.OClientConfiguration;
 import com.io7m.ophis.api.OClientType;
+import com.io7m.ophis.api.OException;
 import com.io7m.ophis.vanilla.internal.commands.OClientCommandCollection;
 
 import java.net.http.HttpClient;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -37,13 +41,14 @@ public final class OClient implements OClientType
   private final OClientCommandCollection commands;
   private final HttpClient httpClient;
   private final JXEHardenedSAXParsers saxParsers;
+  private final CloseableCollectionType<OException> resources;
 
   /**
    * The default client.
    *
-   * @param inConfiguration The configuration
-   * @param inSigningKey    The signing key
-   * @param inCommands      The available commands
+   * @param inConfiguration  The configuration
+   * @param inSigningKey     The signing key
+   * @param inCommands       The available commands
    */
 
   public OClient(
@@ -62,6 +67,17 @@ public final class OClient implements OClientType
         .get();
     this.saxParsers =
       new JXEHardenedSAXParsers();
+
+    this.resources =
+      CloseableCollection.create(() -> {
+        return new OException(
+          "One or more resources could not be closed.",
+          "error-resource",
+          Map.of()
+        );
+      });
+
+    this.resources.add(this.httpClient);
   }
 
   /**
@@ -111,7 +127,8 @@ public final class OClient implements OClientType
 
   @Override
   public void close()
+    throws OException
   {
-    this.httpClient.close();
+    this.resources.close();
   }
 }

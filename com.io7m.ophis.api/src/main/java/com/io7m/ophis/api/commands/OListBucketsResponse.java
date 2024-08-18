@@ -17,16 +17,35 @@
 
 package com.io7m.ophis.api.commands;
 
-import com.io7m.ophis.api.OClientCommandType;
-
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
- * The ListBuckets command.
+ * A list of buckets.
+ *
+ * @param buckets           The buckets
+ * @param owner             The owner
+ * @param continuationToken The continuation token, if any
  */
 
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+public record OListBucketsResponse(
+  List<OBucketDescription> buckets,
+  OOwner owner,
+  Optional<String> continuationToken)
 {
+  /**
+   * A list of buckets.
+   *
+   * @param buckets           The buckets
+   * @param owner             The owner
+   * @param continuationToken The continuation token, if any
+   */
 
+  public OListBucketsResponse
+  {
+    buckets = List.copyOf(buckets);
+    Objects.requireNonNull(owner, "owner");
+    Objects.requireNonNull(continuationToken, "continuationToken");
+  }
 }

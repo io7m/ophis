@@ -22,6 +22,8 @@ import org.immutables.value.Value;
 
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.nio.file.Path;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -37,6 +39,16 @@ public interface OClientConfigurationType
    */
 
   URI endpoint();
+
+  /**
+   * @return The bucket access style
+   */
+
+  @Value.Default
+  default OClientBucketAccessStyle bucketAccessStyle()
+  {
+    return OClientBucketAccessStyle.VIRTUALHOST_STYLE;
+  }
 
   /**
    * The S3 region. For local installations such as in {@code minio}, use "us-east-1".

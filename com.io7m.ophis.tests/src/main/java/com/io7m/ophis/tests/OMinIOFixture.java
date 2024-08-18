@@ -99,6 +99,7 @@ public final class OMinIOFixture
         .addArgument("/data")
         .addArgument("--console-address")
         .addArgument(":9001")
+        .addEnvironmentVariable("MINIO_DOMAIN", "localhost")
         .addEnvironmentVariable("MINIO_ROOT_USER", rootUser())
         .addEnvironmentVariable("MINIO_ROOT_PASSWORD", rootPassword())
         .setReadyCheck(new OMinIOReadyCheck(new EPortAddressType.Address4("localhost"), port));

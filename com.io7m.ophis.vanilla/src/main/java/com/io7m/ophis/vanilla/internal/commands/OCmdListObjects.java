@@ -15,53 +15,39 @@
  */
 
 
-package com.io7m.ophis.vanilla;
+package com.io7m.ophis.vanilla.internal.commands;
 
-import com.io7m.ophis.api.OClientConfiguration;
-import com.io7m.ophis.api.OClientFactoryType;
-import com.io7m.ophis.api.OClientType;
 import com.io7m.ophis.api.OException;
+import com.io7m.ophis.api.commands.OListObjectsParameters;
+import com.io7m.ophis.api.commands.OListObjectsResponse;
+import com.io7m.ophis.api.commands.OListObjectsType;
 import com.io7m.ophis.vanilla.internal.OClient;
-import com.io7m.ophis.vanilla.internal.OSigningKeyV4HMACSHA256;
-import com.io7m.ophis.vanilla.internal.commands.OClientCommandCollection;
-
-import java.time.OffsetDateTime;
+import com.io7m.ophis.vanilla.internal.xml.OXListObjects;
 
 /**
- * The default client factory.
+ * ListObjects.
  */
 
-public final class OClients implements OClientFactoryType
+public final class OCmdListObjects
+  extends OCmdAbstract<OListObjectsParameters, OListObjectsResponse>
+  implements OListObjectsType
 {
-  private final OClientCommandCollection commands;
-
-  /**
-   * The default client factory.
-   */
-
-  public OClients()
+  OCmdListObjects(
+    final OClient client,
+    final OListObjectsParameters parameters)
   {
-    this.commands =
-      OClientCommandCollection.createFromServiceLoader();
+    super(client, parameters);
   }
 
   @Override
-  public OClientType createClient(
-    final OClientConfiguration configuration)
+  public OListObjectsResponse execute()
     throws OException
   {
-    final var signingKey =
-      OSigningKeyV4HMACSHA256.create(
-        configuration.credentials(),
-        OffsetDateTime.now(),
-        configuration.region(),
-        "s3"
-      );
+    this.setBucket(this.parameters().bucketName());
 
-    return new OClient(
-      configuration,
-      signingKey,
-      this.commands
+    return this.sendGET(
+      OXListObjects.elementName(),
+      OXListObjects::new
     );
   }
 }

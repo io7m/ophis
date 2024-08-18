@@ -17,16 +17,27 @@
 
 package com.io7m.ophis.api.commands;
 
-import com.io7m.ophis.api.OClientCommandType;
+import com.io7m.immutables.styles.ImmutablesStyleType;
+import org.immutables.value.Value;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 
-/**
- * The ListBuckets command.
- */
-
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+@ImmutablesStyleType
+@Value.Immutable
+public interface OPutObjectParametersType
 {
+  String bucketName();
 
+  String key();
+
+  Optional<OffsetDateTime> expires();
+
+  @Value.Default
+  default String contentType()
+  {
+    return "application/octet-stream";
+  }
+
+  OObjectData data();
 }

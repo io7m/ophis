@@ -140,6 +140,11 @@
         <artifactId>com.io7m.jlexing.core</artifactId>
         <version>${com.io7m.jlexing.version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.io7m.jmulticlose</groupId>
+        <artifactId>com.io7m.jmulticlose.core</artifactId>
+        <version>${com.io7m.jmulticlose.version}</version>
+      </dependency>
 
       <dependency>
         <groupId>org.apache.commons</groupId>

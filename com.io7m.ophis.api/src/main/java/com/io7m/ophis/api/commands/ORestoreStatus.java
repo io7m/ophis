@@ -15,44 +15,18 @@
  */
 
 
-package com.io7m.ophis.vanilla.internal.commands;
+package com.io7m.ophis.api.commands;
 
-import com.io7m.ophis.api.commands.OBucketList;
-import com.io7m.ophis.api.commands.OListBucketsType;
-import com.io7m.ophis.vanilla.internal.OClient;
-
+import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.Optional;
 
-/**
- * A command factory.
- */
-
-public final class OCmdFListBuckets
-  implements OClientCommandFactoryType<
-  Optional<String>,
-  OBucketList,
-  OListBucketsType>
+public record ORestoreStatus(
+  boolean inProgress,
+  Optional<OffsetDateTime> expiryDate)
 {
-  /**
-   * A command factory.
-   */
-
-  public OCmdFListBuckets()
+  public ORestoreStatus
   {
-
-  }
-
-  @Override
-  public Class<OListBucketsType> commandClass()
-  {
-    return OListBucketsType.class;
-  }
-
-  @Override
-  public OListBucketsType createCommand(
-    final OClient client,
-    final Optional<String> parameters)
-  {
-    return new OCmdListBuckets(client, parameters);
+    Objects.requireNonNull(expiryDate, "expiryDate");
   }
 }

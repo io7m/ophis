@@ -15,18 +15,44 @@
  */
 
 
-package com.io7m.ophis.api.commands;
+package com.io7m.ophis.vanilla.internal.commands;
 
-import com.io7m.ophis.api.OClientCommandType;
+import com.io7m.ophis.api.commands.OListBucketsResponse;
+import com.io7m.ophis.api.commands.OListBucketsType;
+import com.io7m.ophis.vanilla.internal.OClient;
 
 import java.util.Optional;
 
 /**
- * The ListBuckets command.
+ * A command factory.
  */
 
-public non-sealed interface OListBucketsType
-  extends OClientCommandType<Optional<String>, OListBucketsResponse>
+public final class OCmdListBucketsF
+  implements OClientCommandFactoryType<
+  Optional<String>,
+  OListBucketsResponse,
+  OListBucketsType>
 {
+  /**
+   * A command factory.
+   */
 
+  public OCmdListBucketsF()
+  {
+
+  }
+
+  @Override
+  public Class<OListBucketsType> commandClass()
+  {
+    return OListBucketsType.class;
+  }
+
+  @Override
+  public OListBucketsType createCommand(
+    final OClient client,
+    final Optional<String> parameters)
+  {
+    return new OCmdListBuckets(client, parameters);
+  }
 }

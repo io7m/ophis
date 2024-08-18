@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  * The immutable canonical form of a request, used for signatures.
  *
  * @param httpVerb        The HTTP verb (such as "GET")
- * @param resource        The resource (such as "/")
+ * @param resource        The resource
  * @param queryParameters The query parameters
  * @param headers         The headers
  * @param hashedPayload   The SHA-256 hash of the payload
@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 
 public record OCanonicalRequest(
   String httpVerb,
-  String resource,
+  OResourceRelative resource,
   List<Map.Entry<String, String>> queryParameters,
   Map<String, String> headers,
   String hashedPayload)
@@ -101,7 +101,8 @@ public record OCanonicalRequest(
     text.append(this.httpVerb);
     text.append('\n');
 
-    text.append(this.encodeResource());
+    text.append('/');
+    text.append(this.resource);
     text.append('\n');
 
     text.append(
@@ -135,24 +136,6 @@ public record OCanonicalRequest(
     return text.toString();
   }
 
-  private String encodeResource()
-  {
-    final var result =
-      new StringBuilder("/");
-
-    final var segments =
-      this.resource.split("/");
-
-    for (final var segment : segments) {
-      if (!segment.isEmpty()) {
-        result.append("/");
-        result.append(OURLEncode.urlEncode(segment));
-      }
-    }
-
-    return result.toString().replaceAll("/+", "/");
-  }
-
   /**
    * Construct a query URI based on this canonical request and the given
    * endpoint.
@@ -167,9 +150,12 @@ public record OCanonicalRequest(
   {
     final var text = new StringBuilder(256);
     text.append(endpoint);
+
     if (!endpoint.toString().endsWith("/")) {
       text.append('/');
     }
+
+    text.append(this.resource);
     text.append('?');
     text.append(
       this.queryParameters
@@ -211,7 +197,7 @@ public record OCanonicalRequest(
   public static final class Builder
   {
     private String method = "GET";
-    private String resource = "/";
+    private OResourceRelative resource = OResourceRelative.empty();
 
     /**
      * The SHA-256 of the empty string.
@@ -257,11 +243,9 @@ public record OCanonicalRequest(
      */
 
     public Builder setResource(
-      final String inResource)
+      final OResourceRelative inResource)
     {
-      this.resource =
-        Objects.requireNonNull(inResource, "resource");
-
+      this.resource = Objects.requireNonNull(inResource, "resource");;
       return this;
     }
 

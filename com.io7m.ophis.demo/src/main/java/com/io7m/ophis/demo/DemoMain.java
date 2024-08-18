@@ -20,14 +20,20 @@ package com.io7m.ophis.demo;
 import com.io7m.ophis.api.OClientAccessKeys;
 import com.io7m.ophis.api.OClientConfiguration;
 import com.io7m.ophis.api.OException;
-import com.io7m.ophis.api.commands.OListBucketsType;
+import com.io7m.ophis.api.commands.OListObjectsParameters;
+import com.io7m.ophis.api.commands.OListObjectsType;
+import com.io7m.ophis.api.commands.OObjectDatas;
+import com.io7m.ophis.api.commands.OPutObjectParameters;
+import com.io7m.ophis.api.commands.OPutObjectType;
 import com.io7m.ophis.vanilla.OClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.OffsetDateTime;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * S3 client (Demo).
@@ -46,12 +52,14 @@ public final class DemoMain
   /**
    * S3 client (Demo).
    *
-   * @param args The argument
+   * @param args The arguments
    *
+   * @throws Exception On errors
    */
 
   public static void main(
     final String[] args)
+    throws Exception
   {
     final var endpoint =
       System.getProperty("ophis.endpoint");
@@ -73,8 +81,38 @@ public final class DemoMain
         .setCredentials(new OClientAccessKeys(access, secret))
         .build();
 
+    final var tempFile =
+      Paths.get("/tmp/file.txt");
+
     try (var client = clients.createClient(configuration)) {
-      client.execute(OListBucketsType.class, Optional.empty());
+      Files.writeString(tempFile, "Hello!\n");
+
+      {
+        final var r =
+          client.execute(
+            OPutObjectType.class,
+            OPutObjectParameters.builder()
+              .setExpires(OffsetDateTime.now().plusDays(1L))
+              .setBucketName("general")
+              .setContentType("text/plain")
+              .setKey("example.txt")
+              .setData(OObjectDatas.ofFile(tempFile))
+              .build()
+          );
+
+        LOG.debug("Result: {}", r);
+      }
+
+      {
+        final var r = client.execute(
+          OListObjectsType.class,
+          OListObjectsParameters.builder()
+            .setBucketName("general")
+            .build()
+        );
+
+        LOG.debug("Result: {}", r);
+      }
     } catch (final OException e) {
       LOG.error("{}: {}", e.errorCode(), e.getMessage());
       for (final var entry : e.attributes().entrySet()) {

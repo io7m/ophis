@@ -15,7 +15,9 @@
  */
 
 import com.io7m.ophis.vanilla.internal.commands.OClientCommandFactoryType;
-import com.io7m.ophis.vanilla.internal.commands.OCmdFListBuckets;
+import com.io7m.ophis.vanilla.internal.commands.OCmdListBucketsF;
+import com.io7m.ophis.vanilla.internal.commands.OCmdListObjectsF;
+import com.io7m.ophis.vanilla.internal.commands.OCmdPutObjectF;
 
 /**
  * S3 client (Vanilla client implementation).
@@ -30,13 +32,16 @@ module com.io7m.ophis.vanilla
 
   requires com.io7m.blackthorne.core;
   requires com.io7m.jlexing.core;
+  requires com.io7m.jmulticlose.core;
   requires com.io7m.jxe.core;
   requires java.net.http;
 
   uses OClientCommandFactoryType;
 
   provides OClientCommandFactoryType
-    with OCmdFListBuckets;
+    with OCmdListBucketsF,
+      OCmdListObjectsF,
+      OCmdPutObjectF;
 
   exports com.io7m.ophis.vanilla;
 
